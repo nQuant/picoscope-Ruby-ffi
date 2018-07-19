@@ -382,10 +382,10 @@ module PS2000A
 	attach_function :ps2000aSetEtsTimeBuffer, [:int16, :pointer, :int32], :uint32 #pointer->int64
 	attach_function :ps2000aSetEtsTimeBuffers, [:int16, :pointer, :pointer, :int32], :uint32 #pointer->uint32 uint32
 	attach_function :ps2000aIsReady, [:int16, :pointer], :uint32 #pointer -> int16
-	attach_function :ps2000aRunBlock, [:int16, :int32, :int32, :uint32, :int16, :pointer, :uint32, :pointer, :pointer], :uint32 #pointer->int32 ps2000aBlockReady(function callback) void
+	attach_function :ps2000aRunBlock, [:int16, :int32, :int32, :uint32, :int16, :pointer, :uint32, :ps2000aBlockReady, :pointer], :uint32 #pointer->int32 ps2000aBlockReady(function callback) void
 	attach_function :ps2000aRunStreaming, [:int16, :pointer, :int32, :uint32, :uint32, :int16, :uint32, :int32, :uint32], :uint32 #pointer->uint32
 	# attach_function :ps2000aRunStreaming, [:int16, :pointer, :PS2000A_TIME_UNITS, :uint32, :uint32, :int16, :uint32, :PS2000A_RATIO_MODE, :uint32], :uint32 #pointer->uint32
-	attach_function :ps2000aGetStreamingLatestValues, [:int16, :pointer, :pointer], :uint32		#pointer -> ps2000aStreamingReady void
+	attach_function :ps2000aGetStreamingLatestValues, [:int16, :ps2000aStreamingReady, :pointer], :uint32		#pointer -> ps2000aStreamingReady void
 	attach_function :ps2000aNoOfStreamingValues, [:int16, :pointer], :uint32 #pointer -> uint32
 	attach_function :ps2000aGetMaxDownSampleRatio, [:int16, :uint32, :pointer, :int32, :uint32], :uint32 #pointer -> uint32
 	# attach_function :ps2000aGetMaxDownSampleRatio, [:int16, :uint32, :pointer, :PS2000A_RATIO_MODE, :uint32], :uint32 #pointer -> uint32

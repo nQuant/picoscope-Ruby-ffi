@@ -1,5 +1,5 @@
 require 'ffi'
-require './picostatus.rb'
+# require './picostatus.rb'
 
 ##
 #Picostatus constants definition
@@ -202,7 +202,7 @@ PICO_DEVICE_MEMORY_OVERFLOW = 0x10000008  # the memory onboard the device has ov
 BUFFER_SIZE=1024
 BUFFER_SIZE_STREAMING=50000
 NUM_STREAMING_SAMPLES=100000000
-MAX_CHANNELS 4
+MAX_CHANNELS=4
 SINGLE_CH_SCOPE=1
 DUAL_SCOPE=2
 
@@ -289,7 +289,7 @@ module PS2000
 	##
 	#Functions from ps2000.h
 	attach_function :ps2000_open_unit, [], :int16
-	attach_function :ps2000_get_unit_info, [:int16, :string, :int16, :int16], :int16 #really using :string? (string of int8)?
+	attach_function :ps2000_get_unit_info, [:int16, :pointer, :int16, :int16], :int16 #really using :string? (string of int8)?
 	attach_function :ps2000_flash_led, [:int16], :int16
 	attach_function :ps2000_close_unit, [:int16], :int16
 	attach_function :ps2000_set_channel, [:int16, :int16, :int16, :int16, :int16], :int16
@@ -303,7 +303,7 @@ module PS2000
 	attach_function :ps2000_ready, [:int16], :int16
 	attach_function :ps2000_stop, [:int16], :int16
 	attach_function :ps2000_get_values, [:int16, :pointer, :pointer, :pointer, :pointer, :pointer, :int32], :int32 #pointer -> int16 int16 int16 int16 int16
-	attach_function :ps2000_get_times_and_values, [:int16, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer :int16, :int32], :int32 #pointer -> int16 int16 int16 int16 int16 int16
+	attach_function :ps2000_get_times_and_values, [:int16, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :int16, :int32], :int32 #pointer -> int16 int16 int16 int16 int16 int16
 	attach_function :ps2000_last_button_press, [:int16], :int16
 	attach_function :ps2000_set_ets, [:int16, :int16, :int16, :int16], :int32
 	attach_function :ps2000_set_led, [:int16, :int16], :int16
@@ -314,7 +314,7 @@ module PS2000
 	attach_function :ps2000_get_streaming_values, [:int16, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :uint32, :uint32], :uint32 #pointer -> double, int16, int16 int16, int16 int16, int16 int16, int16  int16, uint32 int16
 	attach_function :ps2000_get_streaming_values_no_aggregation, [:int16, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :pointer, :uint32], :uint32 #pointer -> double int16 int16 int16 int16 int16 uint32 int16 
 	attach_function :ps2000_set_light, [:int16, :int16], :int16
-	attach_function :ps2000_set_sig_gen_arbitrary, [:int16, :int16, :uint32, :uint32, :uint32, :uint32, :uint32, :uint8, :int32, :PS2000_SWEEP_TYPE, ::uint32], :int16
+	attach_function :ps2000_set_sig_gen_arbitrary, [:int16, :int16, :uint32, :uint32, :uint32, :uint32, :uint32, :uint8, :int32, :PS2000_SWEEP_TYPE, :uint32], :int16
 	attach_function :ps2000_set_sig_gen_built_in, [:int16, :int32, :uint32, :PS2000_WAVE_TYPE, :float, :float, :float, :float, :PS2000_SWEEP_TYPE, :uint32], :int16
 	
 	enum :PS2000_THRESHOLD_DIRECTION, [:PS2000_ABOVE, :PS2000_BELOW, :PS2000_ADV_RISING, :PS2000_ADV_FALLING, :PS2000_RISING_OR_FALLING, :PS2000_INSIDE, 0, :PS2000_OUTSIDE, 1, :PS2000_ENTER, 2, :PS2000_EXIT, 3,:PS2000_ENTER_OR_EXIT, 4, :PS2000_ADV_NONE, 2]
@@ -350,7 +350,7 @@ module PS2000
 	attach_function :ps2000SetAdvTriggerChannelProperties, [:int16, :pointer, :int16, :int32], :int16 #pointer -> :PS2000_TRIGGER_CHANNEL_PROPERTIES
 	attach_function :ps2000SetAdvTriggerChannelConditions, [:int16, :pointer, :int16], :int16 #pointer -> :PS2000_TRIGGER_CONDITIONS
 	attach_function :ps2000SetAdvTriggerChannelDirections, [:int16, :PS2000_THRESHOLD_DIRECTION, :PS2000_THRESHOLD_DIRECTION, :PS2000_THRESHOLD_DIRECTION, :PS2000_THRESHOLD_DIRECTION, :PS2000_THRESHOLD_DIRECTION], :int16
-	attach_function :ps2000SetPulseWidthQualifier, [:int16, :PS2000_PWQ_CONDITIONS, :int16, :PS2000_THRESHOLD_DIRECTION, :uint32, :uint32, :PS2000_PULSE_WIDTH_TYPE], :int16 #pointer ->PS2000_PWQ_CONDITION
+	attach_function :ps2000SetPulseWidthQualifier, [:int16, PS2000_PWQ_CONDITIONS, :int16, :PS2000_THRESHOLD_DIRECTION, :uint32, :uint32, :PS2000_PULSE_WIDTH_TYPE], :int16 #pointer ->PS2000_PWQ_CONDITION
 	attach_function :ps2000SetAdvTriggerDelay, [:int16, :uint32, :float], :int16
 	attach_function :ps2000PingUnit, [:int16], :int16
 	
@@ -401,7 +401,7 @@ module PS2000
 	end
 	
 	class CHANNEL_SETTINGS < FFI::Struct
-		layout :DCoupled, :int16,
+		layout :DCcoupled, :int16,
 			:range, :int16,
 			:enabled, :int16,
 			:values, [:int16, BUFFER_SIZE]

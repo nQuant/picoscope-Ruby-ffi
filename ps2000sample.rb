@@ -24,7 +24,7 @@ class Main
 
 	$g_triggered = 0
 	$g_triggeredAt = 0
-	$g_nValues =0
+	$g_nValues = 0
 	$g_startIndex = 0
 	$g_prevStartIndex = 0
 	$g_appBufferFull = 0
@@ -33,7 +33,7 @@ class Main
 
 	$bufferInfo = BUFFER_INFO.new
 
-	$times_ptr=FFI::MemoryPointer.new(:int32, BUFFER_SIZE)
+	$times_ptr = FFI::MemoryPointer.new(:int32, BUFFER_SIZE)
 	# $times = Array.new(BUFFER_SIZE){0}
 
 	$input_ranges = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000]
@@ -62,7 +62,7 @@ class Main
 	end
 
 	def adc_to_mv(raw,ch)
-		return $scale_to_mv==1 ? (raw*$input_ranges[ch])/32767 : raw
+		return $scale_to_mv==1 ? (raw*$input_ranges[ch])/32767.0 : raw
 	end
 
 	def set_defaults()
@@ -103,14 +103,10 @@ class Main
 		
 		oversample = 1
 		
-		puts("check e")
-		
-		while ( (h = ps2000_get_timebase($unitOpened[:handle], $timebase, no_of_samples, time_interval_ptr, time_units_ptr, oversample, max_samples_ptr))!=0)
+		while ( (h = ps2000_get_timebase($unitOpened[:handle], $timebase, no_of_samples, time_interval_ptr, time_units_ptr, oversample, max_samples_ptr))!=0) #Bug on a second pass
 			sleep 1
 			puts(" Handle : %d " % h)
 		end
-		
-		puts("check d")
 		
 		$timebase+=1
 		
@@ -118,17 +114,11 @@ class Main
 		
 		ps2000_run_block($unitOpened[:handle], no_of_samples, $timebase, oversample, time_indisposed_ms_ptr)
 		
-		puts("check c")
-		
 		while ps2000_ready($unitOpened[:handle])!=0
 			sleep 1
 		end
 		
-		puts("check b")
-		
 		ps2000_stop($unitOpened[:handle])
-		
-		puts("check a")
 		
 		channelA_values_ptr = FFI::Pointer.new(:int16, $unitOpened[:channelSettings][PS2000_CHANNEL_A].to_ptr + CHANNEL_SETTINGS.offset_of(:values))
 		channelB_values_ptr = FFI::Pointer.new(:int16, $unitOpened[:channelSettings][PS2000_CHANNEL_B].to_ptr + CHANNEL_SETTINGS.offset_of(:values))
@@ -354,17 +344,17 @@ class Main
 				
 				#displaySettings($unitOpened);
 				
-				print("\n")
+				print( "\n" )
 				print( "B - Immediate block                V - Set voltages\n" )
 				print( "T - Triggered block                I - Set timebase\n" )
 				print( "Y - Advanced triggered block       A - ADC counts/mV\n" )
 				print( "E - ETS block\n" )
-				print( "S - Streaming\n")
-				print( "F - Fast streaming\n")
-				print( "D - Fast streaming triggered\n")
-				print( "C - Fast streaming triggered 2\n")
-				print( "G - Signal generator\n")
-				print( "H - Arbitrary signal generator\n")
+				print( "S - Streaming\n" )
+				print( "F - Fast streaming\n" )
+				print( "D - Fast streaming triggered\n" )
+				print( "C - Fast streaming triggered 2\n" )
+				print( "G - Signal generator\n" )
+				print( "H - Arbitrary signal generator\n" )
 				print( "X - Exit\n" )
 				print( "Operation:" )
 				
@@ -393,12 +383,12 @@ class Main
 		end
 	end
 	
-	def self.const_missing(sym)
+	def self.const_missing(sym) #transform module's enums into constants
 		
 		return PS2000.const_missing(sym)
 	
 	end
 end
 
-unit=Main.new
+unit = Main.new
 unit.main

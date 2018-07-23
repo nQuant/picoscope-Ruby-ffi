@@ -1,5 +1,6 @@
 require 'ffi'
-require './picostatus.rb'
+# require './picostatus.rb'
+
 
 ###Constants Definitions
 
@@ -231,12 +232,12 @@ PS2000A_MIN_SIG_GEN_BUFFER_SIZE = 1
 PS2000A_MIN_DWELL_COUNT = 3
 PS2000A_MAX_SWEEPS_SHOTS = ((1<<30) -1)
 
-PS2000A_MAX_ANALOGUE_OFFSET_50MV_200MV = 0.250f
-PS2000A_MIN_ANALOGUE_OFFSET_50MV_200MV = -0.250f
-PS2000A_MAX_ANALOGUE_OFFSET_500MV_2V = 2.500f
-PS2000A_MIN_ANALOGUE_OFFSET_500MV_2V = -2.500f
-PS2000A_MAX_ANALOGUE_OFFSET_5V_20V = 20.f
-PS2000A_MIN_ANALOGUE_OFFSET_5V_20V = -20.f
+PS2000A_MAX_ANALOGUE_OFFSET_50MV_200MV = 0.250
+PS2000A_MIN_ANALOGUE_OFFSET_50MV_200MV = -0.250
+PS2000A_MAX_ANALOGUE_OFFSET_500MV_2V = 2.500
+PS2000A_MIN_ANALOGUE_OFFSET_500MV_2V = -2.500
+PS2000A_MAX_ANALOGUE_OFFSET_5V_20V = 20.0
+PS2000A_MIN_ANALOGUE_OFFSET_5V_20V = -20.0
 
 #supported by the PS2206/PS2206A, PS2207/PS2207A, PS2208/PS2208A only
 PS2000A_SHOT_SWEEP_TRIGGER_CONTINUOUS_RUN = 0xFFFFFFFF
@@ -311,7 +312,8 @@ module PS2000A
 			:thresholdUpperHysteresis, :uint16,
 			:thresholdLower, :int16,
 			:thresholdLowerHysteresis, :uint16,
-			:channel, :PS2000A_CHANNEL
+			:channel, :PS2000A_CHANNEL,
+			:thresholdMode, :PS2000A_THRESHOLD_MODE
 	end
 	
 	enum :PS2000A_RATIO_MODE, [:PS2000A_RATIO_MODE_NONE, :PS2000A_RATIO_MODE_AGGREGATE, 1, :PS2000A_RATIO_MODE_DECIMATE, 2, :PS2000A_RATIO_MODE_AVERAGE, 4]
@@ -469,7 +471,7 @@ module PS2000A
 	
 	
 	class BUFFER_INFO < FFI::Struct
-		layout :unit, :UNIT,
+		layout :unit, UNIT,
 			:mode, :MODE,
 			:driverBuffers, :pointer,
 			:appBuffers, :pointer,
@@ -489,3 +491,509 @@ module PS2000A
 	end
 	
 end
+
+	# """ PICO_STATUS ps2000aOpenUnit
+    # (
+        # int16_t *status,
+        # int8_t  *serial
+    # ); """
+	
+	# """ PICO_STATUS ps2000aOpenUnitAsync
+    # (
+        # int16_t *status,
+        # int8_t	*serial
+    # ); """
+	
+	# """ PICO_STATUS ps2000aOpenUnitProgress
+    # (
+        # int16_t *handle,
+        # int16_t *progressPercent,
+        # int16_t *complete
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetUnitInfo
+    # (
+        # int16_t   handle,
+        # int8_t   *string,
+        # int16_t   stringLength,
+        # int16_t  *requiredSize,
+        # PICO_INFO info
+    # ); """
+	
+	# """ PICO_STATUS ps2000aFlashLed
+    # (
+        # int16_t handle,
+        # int16_t start
+    # ); """
+	
+	# """ PICO_STATUS ps2000aCloseUnit
+    # (
+        # int16_t handle
+    # ); """
+	
+	# """ PICO_STATUS ps2000aMemorySegments
+    # (
+        # int16_t   handle,
+        # uint32_t  nSegments,
+        # int32_t  *nMaxSamples
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetChannel
+    # (
+        # int16_t          handle,
+        # PS2000A_CHANNEL  channel,
+        # int16_t          enabled,
+        # PS2000A_COUPLING type,
+        # PS2000A_RANGE    range,
+        # float            analogOffset
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetDigitalPort
+    # (
+        # int16_t              handle,
+        # PS2000A_DIGITAL_PORT port,
+        # int16_t              enabled,
+        # int16_t              logicLevel
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetNoOfCaptures
+    # (
+        # int16_t  handle,
+        # uint32_t nCaptures
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetTimebase2
+    # (
+        # int16_t  handle,
+        # uint32_t timebase,
+        # int32_t  noSamples,
+        # float   *timeIntervalNanoseconds,
+        # int16_t  oversample,
+        # int32_t *maxSamples,
+        # uint32_t segmentIndex
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetSigGenArbitrary
+    # (
+        # int16_t                     handle,
+        # int32_t                     offsetVoltage,
+        # uint32_t                    pkToPk,
+        # uint32_t                    startDeltaPhase,
+        # uint32_t                    stopDeltaPhase,
+        # uint32_t                    deltaPhaseIncrement,
+        # uint32_t                    dwellCount,
+        # int16_t                    *arbitraryWaveform,
+        # int32_t                     arbitraryWaveformSize,
+        # PS2000A_SWEEP_TYPE          sweepType,
+        # PS2000A_EXTRA_OPERATIONS    operation,
+        # PS2000A_INDEX_MODE          indexMode,
+        # uint32_t                    shots,
+        # uint32_t                    sweeps,
+        # PS2000A_SIGGEN_TRIG_TYPE    triggerType,
+        # PS2000A_SIGGEN_TRIG_SOURCE  triggerSource,
+        # int16_t                     extInThreshold
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetSigGenBuiltIn
+    # (
+        # int16_t                     handle,
+        # int32_t                     offsetVoltage,
+        # uint32_t                    pkToPk,
+        # int16_t                     waveType,
+        # float                       startFrequency,
+        # float                       stopFrequency,
+        # float                       increment,
+        # float                       dwellTime,
+        # PS2000A_SWEEP_TYPE          sweepType,
+        # PS2000A_EXTRA_OPERATIONS    operation,
+        # uint32_t                    shots,
+        # uint32_t                    sweeps,
+        # PS2000A_SIGGEN_TRIG_TYPE    triggerType,
+        # PS2000A_SIGGEN_TRIG_SOURCE  triggerSource,
+        # int16_t                     extInThreshold
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetSigGenPropertiesArbitrary
+    # (
+        # int16_t                     handle,
+        # uint32_t                    startDeltaPhase,
+        # uint32_t                    stopDeltaPhase,
+        # uint32_t                    deltaPhaseIncrement,
+        # uint32_t                    dwellCount,
+        # PS2000A_SWEEP_TYPE          sweepType,
+        # uint32_t                    shots,
+        # uint32_t                    sweeps,
+        # PS2000A_SIGGEN_TRIG_TYPE    triggerType,
+        # PS2000A_SIGGEN_TRIG_SOURCE  triggerSource,
+        # int16_t                     extInThreshold
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetSigGenPropertiesBuiltIn
+    # (
+        # int16_t                     handle,
+        # double                      startFrequency,
+        # double                      stopFrequency,
+        # double                      increment,
+        # double                      dwellTime,
+        # PS2000A_SWEEP_TYPE          sweepType,
+        # uint32_t                    shots,
+        # uint32_t                    sweeps,
+        # PS2000A_SIGGEN_TRIG_TYPE    triggerType,
+        # PS2000A_SIGGEN_TRIG_SOURCE  triggerSource,
+        # int16_t                     extInThreshold
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSigGenFrequencyToPhase
+    # (
+        # int16_t             handle,
+        # double              frequency,
+        # PS2000A_INDEX_MODE  indexMode,
+        # uint32_t            bufferLength,
+        # uint32_t           *phase
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSigGenArbitraryMinMaxValues
+    # (
+        # int16_t   handle,
+        # int16_t  *minArbitraryWaveformValue,
+        # int16_t  *maxArbitraryWaveformValue,
+        # uint32_t *minArbitraryWaveformSize,
+        # uint32_t *maxArbitraryWaveformSize
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSigGenSoftwareControl
+    # (
+        # int16_t  handle,
+        # int16_t  state
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetEts
+    # (
+        # int16_t           handle,
+        # PS2000A_ETS_MODE  mode,
+        # int16_t           etsCycles,
+        # int16_t           etsInterleave,
+        # int32_t          *sampleTimePicoseconds
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetSimpleTrigger
+    # (
+        # int16_t                      handle,
+        # int16_t                      enable,
+        # PS2000A_CHANNEL              source,
+        # int16_t                      threshold,
+        # PS2000A_THRESHOLD_DIRECTION  direction,
+        # uint32_t                     delay,
+        # int16_t                      autoTrigger_ms
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetTriggerDigitalPortProperties
+    # (
+        # int16_t                             handle,
+        # PS2000A_DIGITAL_CHANNEL_DIRECTIONS *directions,
+        # int16_t                             nDirections
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetDigitalAnalogTriggerOperand
+    # (
+        # int16_t handle,
+        # PS2000A_TRIGGER_OPERAND operand
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetTriggerChannelProperties
+    # (
+        # int16_t                             handle,
+        # PS2000A_TRIGGER_CHANNEL_PROPERTIES *channelProperties,
+        # int16_t                             nChannelProperties,
+        # int16_t                             auxOutputEnable,
+        # int32_t                             autoTriggerMilliseconds
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetTriggerChannelConditions
+    # (
+        # int16_t                     handle,
+        # PS2000A_TRIGGER_CONDITIONS *conditions,
+        # int16_t                     nConditions
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetTriggerChannelDirections
+    # (
+        # int16_t                      handle,
+        # PS2000A_THRESHOLD_DIRECTION  channelA,
+        # PS2000A_THRESHOLD_DIRECTION  channelB,
+        # PS2000A_THRESHOLD_DIRECTION  channelC,
+        # PS2000A_THRESHOLD_DIRECTION  channelD,
+        # PS2000A_THRESHOLD_DIRECTION  ext,
+        # PS2000A_THRESHOLD_DIRECTION  aux
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetTriggerDelay
+    # (
+        # int16_t   handle,
+        # uint32_t  delay
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetPulseWidthQualifier
+    # (
+        # int16_t                      handle,
+        # PS2000A_PWQ_CONDITIONS      *conditions,
+        # int16_t                      nConditions,
+        # PS2000A_THRESHOLD_DIRECTION  direction,
+        # uint32_t                     lower,
+        # uint32_t                     upper,
+        # PS2000A_PULSE_WIDTH_TYPE     type
+    # ); """
+	
+	# """ PICO_STATUS ps2000aIsTriggerOrPulseWidthQualifierEnabled
+    # (
+        # int16_t  handle,
+        # int16_t *triggerEnabled,
+        # int16_t *pulseWidthQualifierEnabled
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetTriggerTimeOffset64
+    # (
+        # int16_t             handle,
+        # int64_t            *time,
+        # PS2000A_TIME_UNITS *timeUnits,
+        # uint32_t            segmentIndex
+    # ); """
+	
+	# """ PICO_STATUS PREF2 PREF3 (ps2000aGetValuesTriggerTimeOffsetBulk64)
+    # (
+        # int16_t             handle,
+        # int64_t            *times,
+        # PS2000A_TIME_UNITS *timeUnits,
+        # uint32_t            fromSegmentIndex,
+        # uint32_t            toSegmentIndex
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetNoOfCaptures
+    # (
+        # int16_t   handle,
+        # uint32_t *nCaptures
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetNoOfProcessedCaptures
+    # (
+        # int16_t   handle,
+        # uint32_t *nProcessedCaptures
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetDataBuffer
+    # (
+        # int16_t            handle,
+        # int32_t            channelOrPort,
+        # int16_t           *buffer,
+        # int32_t            bufferLth,
+        # uint32_t           segmentIndex,
+        # PS2000A_RATIO_MODE mode
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetDataBuffers
+    # (
+        # int16_t            handle,
+        # int32_t            channelOrPort,
+        # int16_t           *bufferMax,
+        # int16_t           *bufferMin,
+        # int32_t            bufferLth,
+        # uint32_t           segmentIndex,
+        # PS2000A_RATIO_MODE mode
+    # ); """
+	
+	# """ PICO_STATUS ps2000aSetEtsTimeBuffer
+    # (
+        # int16_t  handle,
+        # int64_t *buffer,
+        # int32_t  bufferLth
+    # ); """
+	
+	
+	# # # attach_function :ps2000aSetEtsTimeBuffers, [], :uint32
+	
+	# """ PICO_STATUS ps2000aIsReady
+    # (
+        # int16_t  handle,
+        # int16_t *ready
+    # ); """
+	
+	# """ PICO_STATUS ps2000aRunBlock
+    # (
+        # int16_t            handle,
+        # int32_t            noOfPreTriggerSamples,
+        # int32_t            noOfPostTriggerSamples,
+        # uint32_t           timebase,
+        # int16_t            oversample,
+        # int32_t           *timeIndisposedMs,
+        # uint32_t           segmentIndex,
+        # ps2000aBlockReady  lpReady, #????
+        # void              *pParameter
+    # ); """
+	
+	# """ PICO_STATUS ps2000aRunStreaming
+    # (
+        # int16_t             handle,
+        # uint32_t            *sampleInterval,
+        # PS2000A_TIME_UNITS  sampleIntervalTimeUnits,
+        # uint32_t            maxPreTriggerSamples,
+        # uint32_t            maxPostPreTriggerSamples,
+        # int16_t             autoStop,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            overviewBufferSize
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetStreamingLatestValues
+    # (
+        # int16_t                handle,
+        # ps2000aStreamingReady  lpPs2000aReady,
+        # void                   *pParameter
+    # ); """
+	
+	# """ void *ps2000aStreamingReady
+    # (
+        # int16_t   handle,
+        # int32_t   noOfSamples,
+        # uint32_t  startIndex,
+        # int16_t   overflow,
+        # uint32_t  triggerAt,
+        # int16_t   triggered,
+        # int16_t   autoStop,
+        # void     *pParameter
+    # ); """
+	
+	
+	
+	# """ PICO_STATUS ps2000aNoOfStreamingValues
+    # (
+        # int16_t   handle,
+        # uint32_t *noOfValues
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetMaxDownSampleRatio
+    # (
+        # int16_t             handle,
+        # uint32_t            noOfUnaggreatedSamples,
+        # uint32_t           *maxDownSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            segmentIndex
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetValues
+    # (
+        # int16_t             handle,
+        # uint32_t            startIndex,
+        # uint32_t           *noOfSamples,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            segmentIndex,
+        # int16_t            *overflow
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetValuesBulk
+    # (
+        # int16_t             handle,
+        # uint32_t           *noOfSamples,
+        # uint32_t            fromSegmentIndex,
+        # uint32_t            toSegmentIndex,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # int16_t            *overflow
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetValuesAsync
+    # (
+        # int16_t             handle,
+        # uint32_t            startIndex,
+        # uint32_t            noOfSamples,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            segmentIndex,
+        # void               *lpDataReady,
+        # void               *pParameter
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetValuesOverlapped
+    # (
+        # int16_t             handle,
+        # uint32_t            startIndex,
+        # uint32_t           *noOfSamples,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            segmentIndex,
+        # int16_t            *overflow
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetValuesOverlappedBulk
+    # (
+        # int16_t             handle,
+        # uint32_t            startIndex,
+        # uint32_t           *noOfSamples,
+        # uint32_t            downSampleRatio,
+        # PS2000A_RATIO_MODE  downSampleRatioMode,
+        # uint32_t            fromSegmentIndex,
+        # uint32_t            toSegmentIndex,   #????
+        # int16_t            *overflow
+    # ); """
+	
+	# """ PICO_STATUS ps2000aStop
+    # (
+        # int16_t  handle
+    # ); """
+	# # attach_function :ps2000aStop, [:int16], :uint32
+	
+	# """ PICO_STATUS ps2000aHoldOff
+    # (
+        # int16_t               handle,
+        # uint64_t              holdoff,
+        # PS2000A_HOLDOFF_TYPE  type
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetChannelInformation
+    # (
+        # int16_t               handle,
+        # PS2000A_CHANNEL_INFO  info,
+        # int32_t               probe,
+        # int32_t              *ranges,
+        # int32_t              *length,
+        # int32_t               channels
+    # ); """
+	
+	# """ PICO_STATUS ps2000aEnumerateUnits
+    # (
+        # int16_t *count,
+        # int8_t  *serials,
+        # int16_t *serialLth
+    # ); """
+	
+	# """ PICO_STATUS ps2000aPingUnit
+    # (
+        # int16_t  handle
+    # ); """
+	
+	# """ PICO_STATUS ps2000aMaximumValue
+    # (
+        # int16_t  handle,
+        # int16_t *value
+    # ); """
+	
+	# """ PICO_STATUS ps2000aMinimumValue
+    # (
+        # int16_t  handle,
+        # int16_t *value
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetAnalogueOffset
+    # (
+        # int16_t           handle,
+        # PS2000A_RANGE     range,
+        # PS2000A_COUPLING  coupling,
+        # float            *maximumVoltage,
+        # float            *minimumVoltage
+    # ); """
+	
+	# """ PICO_STATUS ps2000aGetMaxSegments
+    # (
+        # int16_t   handle,
+        # uint32_t *maxSegments
+    # ); """

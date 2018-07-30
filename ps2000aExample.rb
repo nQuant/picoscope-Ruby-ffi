@@ -3,8 +3,6 @@ require 'ffi'
 require 'io/console'
 require './libC.rb'
 
-include PS2000A
-
 $timebase = 8 #:uint32
 $oversample = 1 #:int16
 $scaleVoltages = 1 #TRUE=1
@@ -35,7 +33,9 @@ $input_ranges = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 5000
 
 
 class Main
-
+	
+	include PS2000A
+	
 	# def CallBackBlock( handle, status, pParameter)
 		# if status!=PICO_CANCELLED
 			# $g_ready = 1
@@ -60,11 +60,11 @@ class Main
 	end
 	
 	def adc_to_mv(raw,ch,unit)
-		return (raw*$input_ranges[ch])/unit[:maxValue]
+		return (raw*$input_ranges[ch])*1.0/unit[:maxValue]
 	end
 	
 	def mv_to_adc(mv, ch, unit)
-		return (mv * unit[:maxValue])/inputRanges[ch]
+		return (mv * unit[:maxValue])/$input_ranges[ch]
 	end
 	
 	def timeUnitsToString(timeUnits)
@@ -116,12 +116,15 @@ class Main
 
 	def BlockDataHandler(unit, text, offset, mode, etsModeSet)
 		
-		sampleCount_ptr = FFI::MemoryPointer(:uint32, 1) #in ps2000acon.c, sampleCount_ptr was declared int32 but the pointer to this is cast to a uint32
+		segmentIndex=0
+		
+		sampleCount_ptr = FFI::MemoryPointer.new(:uint32, 1) #in ps2000acon.c, sampleCount_ptr was declared int32 but the pointer to this is cast to a uint32
 		sampleCount_ptr.write_int32(BUFFER_SIZE)
 		# sampleCount = BUFFER_SIZE
-		timeInterval_ptr = FFI::MemoryPointer(:int32, 1)
-		maxSamples_ptr = FFI::MemoryPointer(:int32, 1)
-		timeIndisposed_ptr = FFI::MemoryPointer(:int32, 1)
+		timeInterval_ptr = FFI::MemoryPointer.new(:int32, 1)
+		maxSamples_ptr = FFI::MemoryPointer.new(:int32, 1)
+		timeIndisposed_ptr = FFI::MemoryPointer.new(:int32, 1)
+		
 		
 		buffers = Array.new(PS2000A_MAX_CHANNEL_BUFFERS){nil}
 		digiBuffer = Array.new(PS2000A_MAX_DIGITAL_PORTS){0}
@@ -135,8 +138,8 @@ class Main
 			if (mode == ANALOGUE || mode == MIXED)
 				for i in (0..unit[:channelCount]-1)
 					if (unit[:channelSettings][i][:enabled]!=0)
-						buffers[i*2] = LibC.malloc(sampleCount_ptr.read_int32 * INT16.size)
-						buffers[i*2+1] = LibC.malloc(sampleCount_ptr.read_int32 * INT16.size)
+						buffers[i*2] = LibC.malloc(sampleCount_ptr.read_int32 * FFI::TYPE_INT16.size)
+						buffers[i*2+1] = LibC.malloc(sampleCount_ptr.read_int32 * FFI::TYPE_INT16.size)
 						# buffers[i*2] = LibC.malloc(sampleCount_ptr.read_int32 * 2) # sizeof(int16) = 2 ??
 						# buffers[i*2+1] = LibC.malloc(sampleCount_ptr.read_int32 * 2) # sizeof(int16) = 2 ??
 						
@@ -167,7 +170,7 @@ class Main
 			end
 			
 			if etsModeSet == 0
-				print("\nTimebase: %u  SampleInterval: %d nS  oversample: %d\n"% [$timebase, timeInterval, $oversample])
+				print("\nTimebase: %u  SampleInterval: %d nS  oversample: %d\n"% [$timebase, timeInterval_ptr.read_int32(), $oversample])
 			end
 			
 			$g_ready = 0
@@ -183,7 +186,8 @@ class Main
 			
 			if $g_ready == 1
 				status = ps2000aGetValues(unit[:handle], 0, sampleCount_ptr, 10, ratioMode, 0, nil)
-				print( status!=0 ? ("BlockDataHandler:ps2000aGetValues ------ 0x%08lx \n" % status) : "")
+				# print( status!=0 ? ("BlockDataHandler:ps2000aGetValues ------ 0x%08lx \n" % status) : "")
+				print( status!=0 ? ("BlockDataHandler:ps2000aGetValues ------ 0x%08x \n" % status) : "")
 				print("%s\n" % text)
 				if (mode == ANALOGUE || mode == MIXED)
 					print("Channels are in (%s) \n\n" % ($scaleVoltages!=0 ? "mV" : "ADC Counts"))
@@ -206,7 +210,7 @@ class Main
 					if (mode == ANALOGUE ||mode == MIXED)
 						for j in (0..unit[:channelCount]-1)
 							if (unit[:channelSettings][j][:enabled] == 1)
-								print("  %6d        " % ($scaleVoltages!=0 ? adc_to_mv( buffers[j*2][i], unit[:channelSettings][PS2000A_CHANNEL_A+j][:range], unit) : buffers[j*2][i]))
+								print("  %6d        " % ($scaleVoltages!=0 ? adc_to_mv( buffers[j*2].read_array_of_int16(sampleCount_ptr.read_int32)[i], unit[:channelSettings][PS2000A_CHANNEL_A+j][:range], unit) : buffers[j*2].read_array_of_int16(sampleCount_ptr.read_int32)[i]))
 							end
 						end
 					end
@@ -253,11 +257,11 @@ class Main
 						if (mode == ANALOGUE && etsModeSet == 1)
 							blockFile.print("%d " % etsTime[i])
 						else
-							blockFile.print("%7d " % ($g_times[0]+i*timeInterval))
+							blockFile.print("%7d " % ($g_times[0]+i*timeInterval_ptr.read_int32()))
 						end
 						for j in (0..unit[:channelCount]-1)
 							if unit[:channelSettings][j][:enabled] == 1
-								blockFile.print("Ch%C  %5d = %+5dmV, %5d = %+5dmV   " % [(65+j).chr, buffers[j*2][i], adc_to_mv(buffers[j*2][i], unit[:channelSettings][PS2000A_CHANNEL_A + j][:range], unit), buffers[j*2+1][i], adc_to_mv(buffers[j*2+1][i], unit[:channelSettings][PS2000A_CHANNEL_A + j][:range])])
+								blockFile.print("Ch%c  %5d = %+5dmV, %5d = %+5dmV   " % [(65+j).chr, buffers[j*2].read_array_of_int16(sampleCount_ptr.read_int32)[i], adc_to_mv(buffers[j*2].read_array_of_int16(sampleCount_ptr.read_int32)[i], unit[:channelSettings][PS2000A_CHANNEL_A + j][:range], unit), buffers[j*2+1].read_array_of_int16(sampleCount_ptr.read_int32)[i], adc_to_mv(buffers[j*2+1].read_array_of_int16(sampleCount_ptr.read_int32)[i], unit[:channelSettings][PS2000A_CHANNEL_A + j][:range],unit)])
 							end
 						end
 						
@@ -340,7 +344,7 @@ class Main
 			return status
 		end
 		
-		if (status = ps2000aSetTriggerConditions(unit[:handle], triggerConditions, nTriggerConditions)) != PICO_OK
+		if (status = ps2000aSetTriggerChannelConditions(unit[:handle], triggerConditions, nTriggerConditions)) != PICO_OK
 			print("SetTrigger:ps2000aSetTriggerChannelConditions ------ 0x%08x \n" % status)
 			return status
 		end
@@ -385,7 +389,7 @@ class Main
 		
 		SetDefaults(unit)
 		
-		SetTrigger(unit, nil, 0, nil, directions, pulseWidth, 0, 0, 0, 0)
+		SetTrigger(unit, nil, 0, nil, 0, directions, pulseWidth, 0, 0, 0, 0, 0)
 		
 		BlockDataHandler(unit, "\nFirst 10 readings:\n", 0, ANALOGUE, 0)
 	end
@@ -423,13 +427,13 @@ class Main
 		directions[:channelA] = PS2000A_RISING
 		
 		print("Collect ETS block...\n")
-		print("Collects when value rises past %d" % (scaleVoltages ? adc_to_mv(sourceDetails[:thresholdUpper], unit[:channelSettings][PS2000A_CHANNEL_A][:range], unit) : sourceDetails[:thresholdUpper]))																
-		print(scaleVoltages ? "mV\n" : "ADC Counts\n")
+		print("Collects when value rises past %d" % ($scaleVoltages!=0 ? adc_to_mv(sourceDetails[:thresholdUpper], unit[:channelSettings][PS2000A_CHANNEL_A][:range], unit) : sourceDetails[:thresholdUpper]))																
+		print($scaleVoltages!=0 ? "mV\n" : "ADC Counts\n")
 		print("Press a key to start... \n")
 		
 		SetDefaults(unit)
 		
-		status = SetTrigger(unit, sourceDetails.to_ptr, 1, conditions.to_ptr, 1, directions.to_ptr, pulseWidth.to_ptr, delay, 0, 0, 0, 0);
+		status = SetTrigger(unit, sourceDetails.to_ptr, 1, conditions.to_ptr, 1, directions, pulseWidth, delay, 0, 0, 0, 0);
 		
 		status = ps2000aSetEts(unit[:handle], PS2000A_ETS_FAST, 20, 4, ets_sampletime_ptr)
 		
@@ -470,17 +474,19 @@ class Main
 		conditions[:digital]=PS2000A_CONDITION_DONT_CARE
 		
 		directions=TRIGGER_DIRECTIONS.new
-		directions[:channelA]=PS2000A_THRESHOLD_DIRECTION
-		directions[:channelB]=PS2000A_THRESHOLD_DIRECTION
-		directions[:channelC]=PS2000A_THRESHOLD_DIRECTION
-		directions[:channelD]=PS2000A_THRESHOLD_DIRECTION
-		directions[:ext]=PS2000A_THRESHOLD_DIRECTION
-		directions[:aux]=PS2000A_THRESHOLD_DIRECTION
+		directions[:channelA]=PS2000A_RISING
+		directions[:channelB]=PS2000A_NONE
+		directions[:channelC]=PS2000A_NONE
+		directions[:channelD]=PS2000A_NONE
+		directions[:ext]=PS2000A_NONE
+		directions[:aux]=PS2000A_NONE
+		
+		pulseWidth = PWQ.new
 		
 		print("Collect block triggered\n")
-		print("Data is written to disk file (%s)\n" % BlockFile)
-		print("Collects when value rises past %d" % (scaleVoltages ? adc_to_mv(sourceDetails.thresholdUpper, unit[:channelSettings][PS2000A_CHANNEL_A][:range], unit) : sourceDetails[:thresholdUpper]))
-		print((scaleVoltages!=0 ? "mV\n" : "ADC Counts\n"))
+		print("Data is written to disk file (%s)\n" % $blockFileName)
+		print("Collects when value rises past %d" % ($scaleVoltages!=0 ? adc_to_mv(sourceDetails[:thresholdUpper], unit[:channelSettings][PS2000A_CHANNEL_A][:range], unit) : sourceDetails[:thresholdUpper]))
+		print(($scaleVoltages!=0 ? "mV\n" : "ADC Counts\n"))
 		
 		print("Press a key to start...\n")
 		
@@ -488,9 +494,9 @@ class Main
 		
 		SetDefaults(unit)
 		
-		SetTrigger(unit, sourceDetails.to_ptr, 1, conditions.to_ptr, 1, directions.to_ptr, pulseWidth.to_ptr, 0, 0, 0, 0, 0)
+		SetTrigger(unit, sourceDetails.to_ptr, 1, conditions.to_ptr, 1, directions, pulseWidth, 0, 0, 0, 0, 0)
 		
-		BlockDataHandler(unit, "Ten readings after trigger\n", ANALOGUE, FALSE_)
+		BlockDataHandler(unit, "Ten readings after trigger\n", 0, ANALOGUE, FALSE_)
 		
 	end
 
@@ -512,11 +518,12 @@ class Main
 						"Firmware 1",
 						"Firmware 2"]
 		
-		line_ptr = FFI::MemoryPointer.new(:char, 80) # 80 = line size
+		line_ptr = FFI::MemoryPointer.new(:int8, 80) # 80 = line size
+		line_ptr.write_string(" "*80)
 		status = PICO_OK
-		numChannels = DUALSCOPE
+		numChannels = DUAL_SCOPE
 		character = 'A'
-		r_ptr = FFI::MemoryPointer(:int16, 1)
+		r_ptr = FFI::MemoryPointer.new(:int16, 1)
 		
 		unit[:signalGenerator] = 1
 		unit[:ETS] = 0
@@ -537,7 +544,7 @@ class Main
 						unit[:channelCount] = QUAD_SCOPE
 					end
 					if numChannels == DUAL_SCOPE
-						if (line.strip.length == 4)||(line.strip.length == 5 && line[4]=="A")||(line == "2205")
+						if (line.strip.length == 4)||(line.strip.length == 5 && line[4]=="A")||(line.strip == "2205MSO")
 							unit[:firstRange] = PS2000A_50MV
 						end
 					end
@@ -546,18 +553,52 @@ class Main
 					end
 				end
 				
-				print("%s: %s\n" % [description[i], line])
+				print("%s: %s\n" % [description[i], line_ptr.read_string()])
 			end
 		end
 	end
 	
 	
+	def SetVoltages(unit)
+		count=0
+		for i in (unit[:firstRange]..unit[:lastRange])
+			puts(i)
+			puts("%d -> %d mV" % [i,$input_ranges[i]])
+		end
+		
+		begin
+			print("Specify voltage range (%d..%d)\n" % [unit[:firstRange], unit[:lastRange]])
+			print("99 - switches channel off\n")
+			for ch in 0..unit[:channelCount]-1
+				print("\n")
+				loop do
+					print("Channel %c: " % (65+ch).chr)
+					unit[:channelSettings][ch][:range] = gets.to_i
+					break if !(unit[:channelSettings][ch][:range]!=99 && (unit[:channelSettings][ch][:range] < unit[:firstRange] || unit[:channelSettings][ch][:range] > unit[:lastRange]))
+				end
+			
+				if unit[:channelSettings][ch][:range]!=99
+					print(" - %d mV\n" % $input_ranges[unit[:channelSettings][ch][:range]])
+					unit[:channelSettings][ch][:enabled] = TRUE_
+					count+=1
+				else
+					print("Channel Switched off\n")
+					unit[:channelSettings][ch][:enabled] = FALSE_
+					unit[:channelSettings][ch][:range] = PS2000A_MAX_RANGES-1
+				end
+			end
+			print( (count==0) ? "\n** At least 1 channel must be enabled **\n\n" : "")
+		end while (count == 0)
+		
+		SetDefaults(unit)
+	end
 	
 	def SetTimebase(unit)
 		timeInterval = FFI::MemoryPointer.new(:int32, 1)
 		maxSamples = FFI::MemoryPointer.new(:int32, 1)
 		
 		print("Specify desired timebase: ")
+		timebase = gets.to_i
 		
 		while (ps2000aGetTimebase(unit[:handle], timebase, BUFFER_SIZE, timeInterval_ptr, 1, maxSamples_ptr, 0)!=0)
 			timebase+=1
@@ -569,9 +610,10 @@ class Main
 	
 	def SetSignalGenerator(unit)
 		
-		offset=-1
+		offset=0
 		waveform=0
-		pkpk=0
+		waveformSize = 0
+		pkpk = 2000000
 		choice = -1
 		frequency = -1
 		delta = FFI::MemoryPointer.new(:uint32,1)
@@ -620,10 +662,10 @@ class Main
 					when 3;
 						waveform = PS2000A_DC_VOLTAGE
 						
-						while offset<0||offset>10000000
+						begin
 							print("\nEnter offset in uV: (0 to 2500000)\n")
 							offset = gets().to_i
-						end
+						end while offset<=0||offset>10000000
 					
 					when 4;
 						waveform = PS2000A_RAMP_UP
@@ -730,7 +772,7 @@ class Main
 			if (!unit[:channelSettings][ch][:enabled]!=0)
 				print("Channel %c Voltage Range = Off\n" % (65 + ch).chr)
 			else
-				voltage = $input_Ranges[ unit[:channelSettings][ch][:range] ]
+				voltage = $input_ranges[ unit[:channelSettings][ch][:range] ]
 				print("Channel %c Voltage Range = " % (65 + ch).chr)
 				if voltage<1000
 					print("%d mV\n" % voltage)
@@ -750,7 +792,7 @@ class Main
 
 	def self.const_missing(sym)
 
-		return PS2000.const_missing(sym)
+		return PS2000A.const_missing(sym)
 	
 	end
 
@@ -796,15 +838,29 @@ class Main
 				
 				when 'R';
 					CollectRapidBlock(unit)
+				
+				when 'V';
+					SetVoltages(unit)
 					
+				when 'A';
+					$scaleVoltages = 1-$scaleVoltages
+				
+				when 'G';
+					SetSignalGenerator(unit)
+				
+				when 'X';
+				
 				else
+					puts("Invalid operation.")
 			end
 			
 		end
 		
 		CloseDevice(unit)	
 	end
+	
 end
 
 unit = Main.new
 unit.main
+# unit.constantTest()

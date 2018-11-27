@@ -1,3 +1,6 @@
+
+# Not functional yet
+
 # picoscope-Ruby-ffi
 Non official Ruby wrapper for PicoSDK using ffi gem.
 
